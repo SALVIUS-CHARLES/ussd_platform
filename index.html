@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>USSD Simulator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: gray;
+        }
+        .ussd-screen {
+            width: 300px;
+            height: 500px;
+            background: black;
+            color: black;
+            padding: 20px;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
+        }
+        .ussd-display {
+            flex: 1;
+            overflow-y: auto;
+            text-align: center;
+            padding: 20px;
+            background: white;
+            border-radius: 5px;
+            font-size: 18px;
+            white-space: pre-wrap;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .ussd-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+        }
+        .ussd-button {
+            padding: 10px;
+            background: blueviolet;
+            color: white;
+            border: none;
+            cursor: pointer;
+            text-align: center;
+            font-size: 16px;
+            border-radius: 5px;
+        }
+        .ussd-controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .ussd-controls .ussd-button {
+            width: 24%;
+        }
+    </style>
+</head>
+<body>
+    <div class="ussd-screen">
+        <div class="ussd-display" id="ussdDisplay">Enter USSD Code (e.g., *123#)</div>
+        <div class="ussd-controls">
+            <button class="ussd-button" onclick="sendInput()">Send</button>
+            <button class="ussd-button" onclick="goBack()">Back</button>
+            <button class="ussd-button" onclick="deleteInput()">Del</button>
+            <button class="ussd-button" onclick="cycleInput(' ')">Space</button>
+        </div>
+        <div class="ussd-buttons">
+            <button class="ussd-button" onclick="cycleInput('1')">1<br>. , !</button>
+            <button class="ussd-button" onclick="cycleInput('2')">2<br>A B C</button>
+            <button class="ussd-button" onclick="cycleInput('3')">3<br>D E F</button>
+            <button class="ussd-button" onclick="cycleInput('4')">4<br>G H I</button>
+            <button class="ussd-button" onclick="cycleInput('5')">5<br>J K L</button>
+            <button class="ussd-button" onclick="cycleInput('6')">6<br>M N O</button>
+            <button class="ussd-button" onclick="cycleInput('7')">7<br>P Q R S</button>
+            <button class="ussd-button" onclick="cycleInput('8')">8<br>T U V</button>
+            <button class="ussd-button" onclick="cycleInput('9')">9<br>W X Y Z</button>
+            <button class="ussd-button" onclick="cycleInput('*')">*</button>
+            <button class="ussd-button" onclick="cycleInput('0')">0<br>+</button>
+            <button class="ussd-button" onclick="cycleInput('#')">#</button>
+        </div>
+    </div>
+
+    <script>
+        let ussdInput = "";
+        let lastKey = "";
+        let lastKeyPressTime = 0;
+        let lastKeyIndex = 0;
+        let cursorVisible = true;
+        let retailerList = [];
+        let productList = [];
+        let orderDetails = {};
+
+        const keyMapping = {
+            '1': ['.', ',', '!', '1'],
+            '2': ['A', 'B', 'C', '2'],
+            '3': ['D', 'E', 'F', '3'],
+            '4': ['G', 'H', 'I', '4'],
+            '5': ['J', 'K', 'L', '5'],
+            '6': ['M', 'N', 'O', '6'],
+            '7': ['P', 'Q', 'R', 'S', '7'],
+            '8': ['T', 'U', 'V', '8'],
+            '9': ['W', 'X', 'Y', 'Z', '9'],
+            '0': ['+', '0']
+        };
+
+        function updateDisplay() {
+            let cursor = cursorVisible ? "|" : " ";
+            document.getElementById("ussdDisplay").innerText = ussdInput + cursor;
+        }
+
+        function cycleInput(value) {
+            const now = new Date().getTime();
+            if (keyMapping[value]) {
+                if (value === lastKey && now - lastKeyPressTime < 1000) {
+                    lastKeyIndex = (lastKeyIndex + 1) % keyMapping[value].length;
+                    ussdInput = ussdInput.slice(0, -1) + keyMapping[value][lastKeyIndex];
+                } else {
+                    lastKeyIndex = 0;
+                    ussdInput += keyMapping[value][lastKeyIndex];
+                }
+                lastKey = value;
+                lastKeyPressTime = now;
+            } else {
+                ussdInput += value;
+            }
+            updateDisplay();
+        }
+
+        function deleteInput() {
+            ussdInput = ussdInput.slice(0, -1);
+            updateDisplay();
+        }
+
+        function sendInput() {
+            if (ussdInput === "*#") {
+                fetchRetailers();
+            } else if (ussdInput.length > 0 && retailerList.length > 0) {
+                fetchProducts();
+            } else if (ussdInput.length > 0 && productList.length > 0) {
+                placeOrder();
+            } else {
+                registerUser();
+            }
+        }
+
+        function goBack() {
+            ussdInput = "";
+            updateDisplay();
+        }
+
+        function fetchRetailers() {
+            fetch('http://localhost:3000/api/retailers') // Backend API to get retailers
+                .then(response => response.json())
+                .then(data => {
+                    retailerList = data;
+                    ussdInput = "Select a retailer:\n";
+                    retailerList.forEach((retailer, index) => {
+                        ussdInput += `${index + 1}. ${retailer.name}\n`;
+                    });
+                    updateDisplay();
+                })
+                .catch(err => {
+                    ussdInput = "Error fetching retailers";
+                    updateDisplay();
+                    console.error(err);
+                });
+        }
+
+        function fetchProducts() {
+    const userInput = ussdInput.trim().split("\n").pop(); // Get last entered value
+    const retailerIndex = parseInt(userInput) - 1;
+
+    if (!isNaN(retailerIndex) && retailerIndex >= 0 && retailerIndex < retailerList.length) {
+        const retailerId = retailerList[retailerIndex].retailer_id;
+        
+        fetch(`http://localhost:3000/api/products/${retailerId}`)
+            .then(response => response.json())
+            .then(data => {
+                productList = data;
+                ussdInput = "Select a product:\n";
+                productList.forEach((product, index) => {
+                    ussdInput += `${index + 1}. ${product.product_name} - TSH ${product.product_cost}\n`;
+                });
+                updateDisplay();
+            })
+            .catch(err => {
+                ussdInput = "Error fetching products";
+                updateDisplay();
+                console.error(err);
+            });
+    } else {
+        ussdInput = "Invalid selection! Please enter a valid number.";
+        updateDisplay();
+    }
+}
+
+
+        function placeOrder() {
+            const productIndex = parseInt(ussdInput.trim()) - 1;
+            if (productIndex >= 0 && productIndex < productList.length) {
+                orderDetails = {
+                    productId: productList[productIndex].product_id,
+                    userId: 1 // You can expand this to take user input for registration
+                };
+                ussdInput = `Order placed! Product: ${productList[productIndex].product_name}`;
+                updateDisplay();
+            } else {
+                ussdInput = "Invalid product selection!";
+                updateDisplay();
+            }
+        }
+
+        function registerUser() {
+            ussdInput = "Enter your name:";
+            updateDisplay();
+        }
+
+        setInterval(() => {
+            cursorVisible = !cursorVisible;
+            updateDisplay();
+        }, 500);
+    </script>
+</body>
+</html>
