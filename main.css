@@ -1,0 +1,56 @@
+body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background-color: gray;
+      }
+      .ussd-screen {
+        width: 300px;
+        height: 500px;
+        background: black;
+        color: black;
+        padding: 20px;
+        border-radius: 10px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
+      }
+      .ussd-display {
+        flex: 1;
+        overflow-y: auto;
+        text-align: center;
+        padding: 20px;
+        background: white;
+        border-radius: 5px;
+        font-size: 18px;
+        white-space: pre-wrap;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .ussd-buttons {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 5px;
+      }
+      .ussd-button {
+        padding: 10px;
+        background: blueviolet;
+        color: white;
+        border: none;
+        cursor: pointer;
+        text-align: center;
+        font-size: 16px;
+        border-radius: 5px;
+      }
+      .ussd-controls {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+      }
+      .ussd-controls .ussd-button {
+        width: 24%;
+      }
